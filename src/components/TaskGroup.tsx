@@ -38,7 +38,7 @@ export function TaskGroup({
   };
 
   return (
-    <div className="animate-fade-in">
+    <div>
       <div className="flex items-center gap-2 py-3 px-3 border-b border-border">
         <button
           onClick={() => onToggleExpand(group.id)}
