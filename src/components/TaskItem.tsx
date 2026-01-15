@@ -98,6 +98,7 @@ export function TaskItem({
               <button
                 onClick={() => onToggleExpand(groupId, task.id)}
                 className="p-0.5 hover:bg-muted rounded transition-colors"
+                type="button"
               >
                 {task.isExpanded ? (
                   <ChevronDown className="h-4 w-4 text-muted-foreground" />
@@ -111,7 +112,7 @@ export function TaskItem({
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="p-0.5 hover:bg-muted rounded transition-colors">
+                <button className="p-0.5 hover:bg-muted rounded transition-colors" type="button">
                   <TaskStatusIcon status={task.status} />
                 </button>
               </DropdownMenuTrigger>
@@ -169,7 +170,7 @@ export function TaskItem({
             <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 pr-2">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="p-1 hover:bg-muted rounded transition-colors">
+                  <button className="p-1 hover:bg-muted rounded transition-colors" type="button">
                     <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
                   </button>
                 </DropdownMenuTrigger>

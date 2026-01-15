@@ -1,3 +1,4 @@
+import { forwardRef } from 'react';
 import { TaskStatus } from '@/types/task';
 import { Circle, CircleDot, CircleCheck, CircleX } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -14,9 +15,13 @@ const statusConfig: Record<TaskStatus, { icon: typeof Circle; className: string 
   done: { icon: CircleCheck, className: 'text-status-done' },
 };
 
-export function TaskStatusIcon({ status, className }: TaskStatusIconProps) {
-  const config = statusConfig[status];
-  const Icon = config.icon;
+export const TaskStatusIcon = forwardRef<HTMLButtonElement, TaskStatusIconProps>(
+  ({ status, className, ...props }, ref) => {
+    const config = statusConfig[status];
+    const Icon = config.icon;
 
-  return <Icon className={cn('h-4 w-4', config.className, className)} />;
-}
+    return <Icon className={cn('h-4 w-4', config.className, className)} {...props} />;
+  }
+);
+
+TaskStatusIcon.displayName = 'TaskStatusIcon';
