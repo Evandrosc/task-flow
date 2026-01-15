@@ -115,7 +115,8 @@
 
 @layer utilities {
   .task-item {
-    @apply transition-all duration-150 ease-out;
+    /* Avoid animating transform/position; it can cause a "jump" on drop */
+    @apply transition-colors duration-150 ease-out;
   }
 
   .task-item:hover {
