@@ -2,95 +2,103 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
-
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --background: 240 10% 96%;
+    --foreground: 240 10% 10%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 240 10% 10%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 240 10% 10%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 262 83% 58%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 240 5% 90%;
+    --secondary-foreground: 240 10% 10%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 240 5% 92%;
+    --muted-foreground: 240 5% 45%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 262 83% 58%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 240 6% 85%;
+    --input: 240 6% 85%;
+    --ring: 262 83% 58%;
 
     --radius: 0.5rem;
 
-    --sidebar-background: 0 0% 98%;
+    --sidebar-background: 240 10% 10%;
+    --sidebar-foreground: 240 5% 90%;
+    --sidebar-primary: 262 83% 58%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 8% 18%;
+    --sidebar-accent-foreground: 240 5% 90%;
+    --sidebar-border: 240 8% 20%;
+    --sidebar-ring: 262 83% 58%;
 
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Task specific */
+    --task-hover: 240 5% 94%;
+    --task-selected: 262 83% 95%;
+    --subtask-line: 240 6% 80%;
+    --status-blocked: 0 75% 50%;
+    --status-todo: 240 5% 60%;
+    --status-progress: 45 93% 55%;
+    --status-done: 142 71% 45%;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    --background: 240 10% 8%;
+    --foreground: 240 5% 92%;
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 240 10% 11%;
+    --card-foreground: 240 5% 92%;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 240 10% 11%;
+    --popover-foreground: 240 5% 92%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 262 83% 58%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 240 8% 18%;
+    --secondary-foreground: 240 5% 92%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 240 8% 16%;
+    --muted-foreground: 240 5% 55%;
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 262 83% 58%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 62% 50%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
+    --border: 240 8% 18%;
+    --input: 240 8% 18%;
+    --ring: 262 83% 58%;
+
+    --sidebar-background: 240 10% 6%;
+    --sidebar-foreground: 240 5% 85%;
+    --sidebar-primary: 262 83% 58%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-accent: 240 8% 14%;
+    --sidebar-accent-foreground: 240 5% 85%;
+    --sidebar-border: 240 8% 15%;
+    --sidebar-ring: 262 83% 58%;
+
+    /* Task specific dark */
+    --task-hover: 240 8% 14%;
+    --task-selected: 262 50% 20%;
+    --subtask-line: 240 8% 25%;
+    --status-blocked: 0 75% 45%;
+    --status-todo: 240 5% 50%;
+    --status-progress: 45 93% 50%;
+    --status-done: 142 71% 40%;
   }
 }
 
@@ -100,6 +108,50 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+}
+
+@layer utilities {
+  .task-item {
+    @apply transition-all duration-150 ease-out;
+  }
+
+  .task-item:hover {
+    @apply bg-task-hover;
+  }
+
+  .task-dragging {
+    @apply shadow-lg shadow-primary/20 ring-2 ring-primary/50 bg-card;
+  }
+
+  .subtask-indent {
+    @apply pl-8 relative;
+  }
+
+  .subtask-indent::before {
+    content: '';
+    @apply absolute left-4 top-0 bottom-0 w-px bg-subtask-line;
+  }
+
+  .status-badge {
+    @apply px-2 py-0.5 text-xs font-medium rounded-md uppercase tracking-wide;
+  }
+
+  .status-blocked {
+    @apply bg-status-blocked/20 text-status-blocked;
+  }
+
+  .status-todo {
+    @apply bg-status-todo/20 text-status-todo;
+  }
+
+  .status-progress {
+    @apply bg-status-progress/20 text-status-progress;
+  }
+
+  .status-done {
+    @apply bg-status-done/20 text-status-done;
   }
 }
