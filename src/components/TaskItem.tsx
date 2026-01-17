@@ -78,8 +78,9 @@ export function TaskItem({
           <div
             ref={provided.innerRef}
             {...provided.draggableProps}
+            {...provided.dragHandleProps}
             className={cn(
-              'task-item flex items-center gap-2 py-2 border-b border-border/50 group',
+              'task-item flex items-center gap-2 py-2 border-b border-border/50 group cursor-grab active:cursor-grabbing',
               snapshot.isDragging && 'task-dragging rounded-md z-50'
             )}
             style={{
@@ -87,10 +88,7 @@ export function TaskItem({
               paddingLeft,
             }}
           >
-            <div
-              {...provided.dragHandleProps}
-              className="opacity-0 group-hover:opacity-100 cursor-grab active:cursor-grabbing transition-opacity"
-            >
+            <div className="opacity-0 group-hover:opacity-100 transition-opacity">
               <GripVertical className="h-4 w-4 text-muted-foreground" />
             </div>
 
