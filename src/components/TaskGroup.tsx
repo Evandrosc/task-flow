@@ -1,4 +1,4 @@
-import { DragDropContext, Droppable, DropResult } from '@hello-pangea/dnd';
+import { Droppable } from '@hello-pangea/dnd';
 import { ChevronRight, ChevronDown, MoreHorizontal } from 'lucide-react';
 import { TaskGroup as TaskGroupType, Task } from '@/types/task';
 import { TaskItem } from './TaskItem';
@@ -14,7 +14,6 @@ interface TaskGroupProps {
   onAddSubtask: (groupId: string, parentTaskId: string, title: string) => void;
   onUpdateTask: (groupId: string, taskId: string, updates: Partial<Task>) => void;
   onDeleteTask: (groupId: string, taskId: string) => void;
-  onReorderTasks: (groupId: string, startIndex: number, endIndex: number) => void;
   onReorderSubtasks: (groupId: string, parentTaskId: string, startIndex: number, endIndex: number) => void;
   getSubtaskCount: (task: Task) => number;
 }
@@ -27,16 +26,9 @@ export function TaskGroup({
   onAddSubtask,
   onUpdateTask,
   onDeleteTask,
-  onReorderTasks,
   onReorderSubtasks,
   getSubtaskCount,
 }: TaskGroupProps) {
-  const handleDragEnd = (result: DropResult) => {
-    if (!result.destination) return;
-    if (result.source.index === result.destination.index) return;
-    onReorderTasks(group.id, result.source.index, result.destination.index);
-  };
-
   return (
     <div>
       <div className="flex items-center gap-2 py-3 px-3 border-b border-border">
@@ -66,36 +58,34 @@ export function TaskGroup({
 
       {group.isExpanded && (
         <div className="bg-card/50">
-          <DragDropContext onDragEnd={handleDragEnd}>
-            <Droppable droppableId={group.id} type="tasks">
-              {(provided, snapshot) => (
-                <div
-                  ref={provided.innerRef}
-                  {...provided.droppableProps}
-                  className={cn(
-                    'min-h-[20px] transition-colors',
-                    snapshot.isDraggingOver && 'bg-task-hover'
-                  )}
-                >
-                  {group.tasks.map((task, index) => (
-                    <TaskItem
-                      key={task.id}
-                      task={task}
-                      groupId={group.id}
-                      index={index}
-                      onToggleExpand={onToggleTaskExpand}
-                      onAddSubtask={onAddSubtask}
-                      onUpdateTask={onUpdateTask}
-                      onDeleteTask={onDeleteTask}
-                      onReorderSubtasks={onReorderSubtasks}
-                      getSubtaskCount={getSubtaskCount}
-                    />
-                  ))}
-                  {provided.placeholder}
-                </div>
-              )}
-            </Droppable>
-          </DragDropContext>
+          <Droppable droppableId={group.id} type="TASK">
+            {(provided, snapshot) => (
+              <div
+                ref={provided.innerRef}
+                {...provided.droppableProps}
+                className={cn(
+                  'min-h-[20px] transition-colors',
+                  snapshot.isDraggingOver && 'bg-task-hover'
+                )}
+              >
+                {group.tasks.map((task, index) => (
+                  <TaskItem
+                    key={task.id}
+                    task={task}
+                    groupId={group.id}
+                    index={index}
+                    onToggleExpand={onToggleTaskExpand}
+                    onAddSubtask={onAddSubtask}
+                    onUpdateTask={onUpdateTask}
+                    onDeleteTask={onDeleteTask}
+                    onReorderSubtasks={onReorderSubtasks}
+                    getSubtaskCount={getSubtaskCount}
+                  />
+                ))}
+                {provided.placeholder}
+              </div>
+            )}
+          </Droppable>
 
           <AddTaskInput
             onAdd={(title) => onAddTask(group.id, title)}

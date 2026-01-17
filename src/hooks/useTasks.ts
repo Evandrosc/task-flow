@@ -244,6 +244,66 @@ export function useTasks() {
     return count;
   }, []);
 
+  // Find and remove a task from anywhere in the hierarchy, returning the task
+  const findAndRemoveTask = useCallback((tasks: Task[], taskId: string): { tasks: Task[]; removed: Task | null } => {
+    let removed: Task | null = null;
+    
+    const newTasks = tasks.filter((task) => {
+      if (task.id === taskId) {
+        removed = task;
+        return false;
+      }
+      return true;
+    });
+
+    if (removed) {
+      return { tasks: newTasks, removed };
+    }
+
+    // Search in subtasks
+    return {
+      tasks: newTasks.map((task) => {
+        if (removed) return task;
+        const result = findAndRemoveTask(task.subtasks, taskId);
+        if (result.removed) {
+          removed = result.removed;
+          return { ...task, subtasks: result.tasks };
+        }
+        return task;
+      }),
+      removed,
+    };
+  }, []);
+
+  // Move a task (from anywhere) to a group's top level
+  const moveTaskToGroup = useCallback((taskId: string, targetGroupId: string, targetIndex: number) => {
+    setGroups((prev) => {
+      let taskToMove: Task | null = null;
+
+      // First, find and remove the task from its current location
+      const groupsAfterRemoval = prev.map((group) => {
+        const result = findAndRemoveTask(group.tasks, taskId);
+        if (result.removed) {
+          taskToMove = result.removed;
+          return { ...group, tasks: result.tasks };
+        }
+        return group;
+      });
+
+      if (!taskToMove) return prev;
+
+      // Then, add the task to the target group at the specified index
+      return groupsAfterRemoval.map((group) => {
+        if (group.id === targetGroupId) {
+          const newTasks = [...group.tasks];
+          newTasks.splice(targetIndex, 0, taskToMove!);
+          return { ...group, tasks: newTasks };
+        }
+        return group;
+      });
+    });
+  }, [findAndRemoveTask]);
+
   return {
     groups,
     addTask,
@@ -255,5 +315,6 @@ export function useTasks() {
     reorderTasks,
     reorderSubtasks,
     getSubtaskCount,
+    moveTaskToGroup,
   };
 }

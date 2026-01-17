@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Draggable, Droppable, DragDropContext, DropResult } from '@hello-pangea/dnd';
+import { Draggable, Droppable } from '@hello-pangea/dnd';
 import { ChevronRight, ChevronDown, GripVertical, MoreHorizontal, Pencil, Trash2, Link } from 'lucide-react';
 import { Task, TaskStatus } from '@/types/task';
 import { TaskStatusIcon } from './TaskStatusIcon';
@@ -61,12 +61,6 @@ export function TaskItem({
 
   const handleStatusChange = (status: TaskStatus) => {
     onUpdateTask(groupId, task.id, { status });
-  };
-
-  const handleDragEnd = (result: DropResult) => {
-    if (!result.destination) return;
-    if (result.source.index === result.destination.index) return;
-    onReorderSubtasks(groupId, task.id, result.source.index, result.destination.index);
   };
 
   const paddingLeft = depth * 32 + 12;
@@ -197,30 +191,28 @@ export function TaskItem({
       </Draggable>
 
       {task.isExpanded && hasSubtasks && (
-        <DragDropContext onDragEnd={handleDragEnd}>
-          <Droppable droppableId={`subtasks-${task.id}`} type={`subtasks-${task.id}`}>
-            {(provided) => (
-              <div ref={provided.innerRef} {...provided.droppableProps}>
-                {task.subtasks.map((subtask, subtaskIndex) => (
-                  <TaskItem
-                    key={subtask.id}
-                    task={subtask}
-                    groupId={groupId}
-                    index={subtaskIndex}
-                    depth={depth + 1}
-                    onToggleExpand={onToggleExpand}
-                    onAddSubtask={onAddSubtask}
-                    onUpdateTask={onUpdateTask}
-                    onDeleteTask={onDeleteTask}
-                    onReorderSubtasks={onReorderSubtasks}
-                    getSubtaskCount={getSubtaskCount}
-                  />
-                ))}
-                {provided.placeholder}
-              </div>
-            )}
-          </Droppable>
-        </DragDropContext>
+        <Droppable droppableId={`subtasks-${task.id}`} type="TASK">
+          {(provided) => (
+            <div ref={provided.innerRef} {...provided.droppableProps}>
+              {task.subtasks.map((subtask, subtaskIndex) => (
+                <TaskItem
+                  key={subtask.id}
+                  task={subtask}
+                  groupId={groupId}
+                  index={subtaskIndex}
+                  depth={depth + 1}
+                  onToggleExpand={onToggleExpand}
+                  onAddSubtask={onAddSubtask}
+                  onUpdateTask={onUpdateTask}
+                  onDeleteTask={onDeleteTask}
+                  onReorderSubtasks={onReorderSubtasks}
+                  getSubtaskCount={getSubtaskCount}
+                />
+              ))}
+              {provided.placeholder}
+            </div>
+          )}
+        </Droppable>
       )}
 
       {task.isExpanded && (
