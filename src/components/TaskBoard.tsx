@@ -15,6 +15,7 @@ export function TaskBoard() {
     reorderSubtasks,
     getSubtaskCount,
     moveTaskToGroup,
+    moveTaskToSubtask,
   } = useTasks();
 
   const handleDragEnd = (result: DropResult) => {
@@ -44,24 +45,31 @@ export function TaskBoard() {
       return;
     }
     
-    // Moving within subtasks of the same parent
-    if (sourceDroppableId === destDroppableId && sourceDroppableId.startsWith('subtasks-')) {
-      const parentTaskId = sourceDroppableId.replace('subtasks-', '');
-      // Find which group this parent belongs to
-      for (const group of groups) {
-        const findParentGroup = (tasks: typeof group.tasks): string | null => {
-          for (const task of tasks) {
-            if (task.id === parentTaskId) return group.id;
-            const found = findParentGroup(task.subtasks);
-            if (found) return found;
+    // Moving to subtasks of a task (demoting task to subtask or reordering subtasks)
+    if (destDroppableId.startsWith('subtasks-')) {
+      const parentTaskId = destDroppableId.replace('subtasks-', '');
+      
+      // If same source and destination, it's a reorder within subtasks
+      if (sourceDroppableId === destDroppableId) {
+        // Find which group this parent belongs to
+        for (const group of groups) {
+          const findParentGroup = (tasks: typeof group.tasks): string | null => {
+            for (const task of tasks) {
+              if (task.id === parentTaskId) return group.id;
+              const found = findParentGroup(task.subtasks);
+              if (found) return found;
+            }
+            return null;
+          };
+          const groupId = findParentGroup(group.tasks);
+          if (groupId) {
+            reorderSubtasks(groupId, parentTaskId, source.index, destination.index);
+            return;
           }
-          return null;
-        };
-        const groupId = findParentGroup(group.tasks);
-        if (groupId) {
-          reorderSubtasks(groupId, parentTaskId, source.index, destination.index);
-          return;
         }
+      } else {
+        // Moving a task to become a subtask of another task
+        moveTaskToSubtask(draggableId, parentTaskId, destination.index);
       }
     }
   };

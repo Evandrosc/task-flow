@@ -304,6 +304,52 @@ export function useTasks() {
     });
   }, [findAndRemoveTask]);
 
+  // Move a task (from anywhere) to become a subtask of another task
+  const moveTaskToSubtask = useCallback((taskId: string, parentTaskId: string, targetIndex: number) => {
+    // Don't allow moving a task into itself or its own subtasks
+    if (taskId === parentTaskId) return;
+
+    setGroups((prev) => {
+      let taskToMove: Task | null = null;
+
+      // First, find and remove the task from its current location
+      const groupsAfterRemoval = prev.map((group) => {
+        const result = findAndRemoveTask(group.tasks, taskId);
+        if (result.removed) {
+          taskToMove = result.removed;
+          return { ...group, tasks: result.tasks };
+        }
+        return group;
+      });
+
+      if (!taskToMove) return prev;
+
+      // Check if we're trying to move a parent into its own child (would create circular reference)
+      const isDescendant = (task: Task, ancestorId: string): boolean => {
+        if (task.id === ancestorId) return true;
+        return task.subtasks.some(st => isDescendant(st, ancestorId));
+      };
+      if (isDescendant(taskToMove, parentTaskId)) return prev;
+
+      // Then, add the task as a subtask of the parent task
+      const addToParent = (tasks: Task[]): Task[] => {
+        return tasks.map((task) => {
+          if (task.id === parentTaskId) {
+            const newSubtasks = [...task.subtasks];
+            newSubtasks.splice(targetIndex, 0, taskToMove!);
+            return { ...task, subtasks: newSubtasks, isExpanded: true };
+          }
+          return { ...task, subtasks: addToParent(task.subtasks) };
+        });
+      };
+
+      return groupsAfterRemoval.map((group) => ({
+        ...group,
+        tasks: addToParent(group.tasks),
+      }));
+    });
+  }, [findAndRemoveTask]);
+
   return {
     groups,
     addTask,
@@ -316,5 +362,6 @@ export function useTasks() {
     reorderSubtasks,
     getSubtaskCount,
     moveTaskToGroup,
+    moveTaskToSubtask,
   };
 }
