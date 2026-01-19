@@ -44,11 +44,18 @@ export function TaskBoard() {
       moveTaskToGroup(draggableId, destDroppableId, destination.index);
       return;
     }
-    
+
+    // Dropping on a task row: make it a subtask of that task
+    if (destDroppableId.startsWith('drop-')) {
+      const parentTaskId = destDroppableId.replace('drop-', '');
+      moveTaskToSubtask(draggableId, parentTaskId, 0);
+      return;
+    }
+
     // Moving to subtasks of a task (demoting task to subtask or reordering subtasks)
     if (destDroppableId.startsWith('subtasks-')) {
       const parentTaskId = destDroppableId.replace('subtasks-', '');
-      
+
       // If same source and destination, it's a reorder within subtasks
       if (sourceDroppableId === destDroppableId) {
         // Find which group this parent belongs to
