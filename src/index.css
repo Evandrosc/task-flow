@@ -157,14 +157,14 @@
   }
 }
 
-/* Custom drop placeholder indicator */
+/* Custom drop placeholder indicator - line with triangle */
 [data-rbd-placeholder-context-id] {
   position: relative;
-  min-height: 4px !important;
-  max-height: 4px !important;
-  margin: 4px 12px;
+  min-height: 2px !important;
+  max-height: 2px !important;
+  margin: 0 0 0 12px;
   background: hsl(var(--primary)) !important;
-  border-radius: 2px;
+  border-radius: 0;
   opacity: 1 !important;
 }
 
@@ -174,8 +174,9 @@
   left: -6px;
   top: 50%;
   transform: translateY(-50%);
-  width: 8px;
-  height: 8px;
-  background: hsl(var(--primary));
-  border-radius: 50%;
+  width: 0;
+  height: 0;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-left: 6px solid hsl(var(--primary));
 }
