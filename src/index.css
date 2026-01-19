@@ -156,3 +156,26 @@
     @apply bg-status-done/20 text-status-done;
   }
 }
+
+/* Custom drop placeholder indicator */
+[data-rbd-placeholder-context-id] {
+  position: relative;
+  min-height: 4px !important;
+  max-height: 4px !important;
+  margin: 4px 12px;
+  background: hsl(var(--primary)) !important;
+  border-radius: 2px;
+  opacity: 1 !important;
+}
+
+[data-rbd-placeholder-context-id]::before {
+  content: '';
+  position: absolute;
+  left: -6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 8px;
+  background: hsl(var(--primary));
+  border-radius: 50%;
+}
