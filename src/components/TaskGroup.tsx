@@ -4,7 +4,7 @@ import { TaskGroup as TaskGroupType, Task } from '@/types/task';
 import { TaskItem } from './TaskItem';
 import { AddTaskInput } from './AddTaskInput';
 import { StatusBadge } from './StatusBadge';
-import { cn } from '@/lib/utils';
+import { useDragState } from './TaskBoard';
 
 interface TaskGroupProps {
   group: TaskGroupType;
@@ -18,6 +18,15 @@ interface TaskGroupProps {
   getSubtaskCount: (task: Task) => number;
 }
 
+function DropIndicator() {
+  return (
+    <div className="drop-indicator">
+      <div className="drop-indicator-arrow" />
+      <div className="drop-indicator-line" />
+    </div>
+  );
+}
+
 export function TaskGroup({
   group,
   onToggleExpand,
@@ -29,6 +38,10 @@ export function TaskGroup({
   onReorderSubtasks,
   getSubtaskCount,
 }: TaskGroupProps) {
+  const dragState = useDragState();
+  const showIndicatorAtEnd = dragState.destinationDroppableId === group.id && 
+    dragState.destinationIndex === group.tasks.length;
+
   return (
     <div>
       <div className="flex items-center gap-2 py-3 px-3 border-b border-border">
@@ -59,14 +72,11 @@ export function TaskGroup({
       {group.isExpanded && (
         <div className="bg-card/50">
           <Droppable droppableId={group.id} type="TASK">
-            {(provided, snapshot) => (
+            {(provided) => (
               <div
                 ref={provided.innerRef}
                 {...provided.droppableProps}
-                className={cn(
-                  'min-h-[20px] transition-colors',
-                  snapshot.isDraggingOver && 'bg-task-hover'
-                )}
+                className="min-h-[20px]"
               >
                 {group.tasks.map((task, index) => (
                   <TaskItem
@@ -82,6 +92,7 @@ export function TaskGroup({
                     getSubtaskCount={getSubtaskCount}
                   />
                 ))}
+                {showIndicatorAtEnd && <DropIndicator />}
                 {provided.placeholder}
               </div>
             )}

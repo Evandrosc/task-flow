@@ -1,6 +1,16 @@
-import { DragDropContext, DropResult } from '@hello-pangea/dnd';
+import { useState, useCallback, createContext, useContext } from 'react';
+import { DragDropContext, DropResult, DragUpdate } from '@hello-pangea/dnd';
 import { useTasks } from '@/hooks/useTasks';
 import { TaskGroup } from './TaskGroup';
+
+interface DragState {
+  destinationDroppableId: string | null;
+  destinationIndex: number | null;
+}
+
+const DragContext = createContext<DragState>({ destinationDroppableId: null, destinationIndex: null });
+
+export const useDragState = () => useContext(DragContext);
 
 export function TaskBoard() {
   const {
@@ -18,7 +28,25 @@ export function TaskBoard() {
     moveTaskToSubtask,
   } = useTasks();
 
+  const [dragState, setDragState] = useState<DragState>({
+    destinationDroppableId: null,
+    destinationIndex: null,
+  });
+
+  const handleDragUpdate = useCallback((update: DragUpdate) => {
+    if (update.destination) {
+      setDragState({
+        destinationDroppableId: update.destination.droppableId,
+        destinationIndex: update.destination.index,
+      });
+    } else {
+      setDragState({ destinationDroppableId: null, destinationIndex: null });
+    }
+  }, []);
+
   const handleDragEnd = (result: DropResult) => {
+    setDragState({ destinationDroppableId: null, destinationIndex: null });
+    
     const { source, destination, draggableId } = result;
     
     if (!destination) return;
@@ -82,25 +110,27 @@ export function TaskBoard() {
   };
 
   return (
-    <DragDropContext onDragEnd={handleDragEnd}>
-      <div className="flex-1 overflow-auto">
-        <div className="max-w-5xl mx-auto py-4">
-          {groups.map((group) => (
-            <TaskGroup
-              key={group.id}
-              group={group}
-              onToggleExpand={toggleGroupExpand}
-              onToggleTaskExpand={toggleTaskExpand}
-              onAddTask={addTask}
-              onAddSubtask={addSubtask}
-              onUpdateTask={updateTask}
-              onDeleteTask={deleteTask}
-              onReorderSubtasks={reorderSubtasks}
-              getSubtaskCount={getSubtaskCount}
-            />
-          ))}
+    <DragContext.Provider value={dragState}>
+      <DragDropContext onDragEnd={handleDragEnd} onDragUpdate={handleDragUpdate}>
+        <div className="flex-1 overflow-auto">
+          <div className="max-w-5xl mx-auto py-4">
+            {groups.map((group) => (
+              <TaskGroup
+                key={group.id}
+                group={group}
+                onToggleExpand={toggleGroupExpand}
+                onToggleTaskExpand={toggleTaskExpand}
+                onAddTask={addTask}
+                onAddSubtask={addSubtask}
+                onUpdateTask={updateTask}
+                onDeleteTask={deleteTask}
+                onReorderSubtasks={reorderSubtasks}
+                getSubtaskCount={getSubtaskCount}
+              />
+            ))}
+          </div>
         </div>
-      </div>
-    </DragDropContext>
+      </DragDropContext>
+    </DragContext.Provider>
   );
 }
