@@ -1,16 +1,8 @@
-import { useState, useCallback, createContext, useContext } from 'react';
+import { useState, useCallback } from 'react';
 import { DragDropContext, DropResult, DragUpdate } from '@hello-pangea/dnd';
 import { useTasks } from '@/hooks/useTasks';
 import { TaskGroup } from './TaskGroup';
-
-interface DragState {
-  destinationDroppableId: string | null;
-  destinationIndex: number | null;
-}
-
-const DragContext = createContext<DragState>({ destinationDroppableId: null, destinationIndex: null });
-
-export const useDragState = () => useContext(DragContext);
+import { DragContext, DragState } from './DragContext';
 
 export function TaskBoard() {
   const {

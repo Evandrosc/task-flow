@@ -4,7 +4,7 @@ import { TaskGroup as TaskGroupType, Task } from '@/types/task';
 import { TaskItem } from './TaskItem';
 import { AddTaskInput } from './AddTaskInput';
 import { StatusBadge } from './StatusBadge';
-import { useDragState } from './TaskBoard';
+import { useDragState } from './DragContext';
 
 interface TaskGroupProps {
   group: TaskGroupType;
