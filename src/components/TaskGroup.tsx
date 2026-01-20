@@ -39,8 +39,15 @@ export function TaskGroup({
   getSubtaskCount,
 }: TaskGroupProps) {
   const dragState = useDragState();
+  
+  // Show indicator at end only when dragging from a different group or dragging up within same group
+  const isSameGroup = dragState.sourceDroppableId === group.id && dragState.destinationDroppableId === group.id;
+  const isDraggingDown = isSameGroup && dragState.sourceIndex !== null && dragState.sourceIndex < (dragState.destinationIndex ?? 0);
+  
+  // Only show at end if not dragging down within same group (when dragging down, indicator is shown below items)
   const showIndicatorAtEnd = dragState.destinationDroppableId === group.id && 
-    dragState.destinationIndex === group.tasks.length;
+    dragState.destinationIndex === group.tasks.length &&
+    !isDraggingDown;
 
   return (
     <div>

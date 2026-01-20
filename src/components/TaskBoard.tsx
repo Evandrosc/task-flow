@@ -21,6 +21,8 @@ export function TaskBoard() {
   } = useTasks();
 
   const [dragState, setDragState] = useState<DragState>({
+    sourceDroppableId: null,
+    sourceIndex: null,
     destinationDroppableId: null,
     destinationIndex: null,
   });
@@ -28,16 +30,28 @@ export function TaskBoard() {
   const handleDragUpdate = useCallback((update: DragUpdate) => {
     if (update.destination) {
       setDragState({
+        sourceDroppableId: update.source.droppableId,
+        sourceIndex: update.source.index,
         destinationDroppableId: update.destination.droppableId,
         destinationIndex: update.destination.index,
       });
     } else {
-      setDragState({ destinationDroppableId: null, destinationIndex: null });
+      setDragState({ 
+        sourceDroppableId: null, 
+        sourceIndex: null, 
+        destinationDroppableId: null, 
+        destinationIndex: null 
+      });
     }
   }, []);
 
   const handleDragEnd = (result: DropResult) => {
-    setDragState({ destinationDroppableId: null, destinationIndex: null });
+    setDragState({ 
+      sourceDroppableId: null, 
+      sourceIndex: null, 
+      destinationDroppableId: null, 
+      destinationIndex: null 
+    });
     
     const { source, destination, draggableId } = result;
     
