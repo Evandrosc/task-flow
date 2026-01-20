@@ -5,7 +5,7 @@ import { Task, TaskStatus } from '@/types/task';
 import { TaskStatusIcon } from './TaskStatusIcon';
 import { AddTaskInput } from './AddTaskInput';
 import { cn } from '@/lib/utils';
-import { useDragState } from './TaskBoard';
+import { useDragState } from './DragContext';
 import {
   DropdownMenu,
   DropdownMenuContent,
