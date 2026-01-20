@@ -5,6 +5,7 @@ import { Task, TaskStatus } from '@/types/task';
 import { TaskStatusIcon } from './TaskStatusIcon';
 import { AddTaskInput } from './AddTaskInput';
 import { cn } from '@/lib/utils';
+import { useDragState } from './TaskBoard';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,6 +27,15 @@ interface TaskItemProps {
   getSubtaskCount: (task: Task) => number;
 }
 
+function DropIndicator() {
+  return (
+    <div className="drop-indicator">
+      <div className="drop-indicator-arrow" />
+      <div className="drop-indicator-line" />
+    </div>
+  );
+}
+
 export function TaskItem({
   task,
   groupId,
@@ -42,6 +52,7 @@ export function TaskItem({
   const [editTitle, setEditTitle] = useState(task.title);
   const hasSubtasks = task.subtasks.length > 0;
   const subtaskCount = getSubtaskCount(task);
+  const dragState = useDragState();
 
   const handleEditSubmit = () => {
     if (editTitle.trim() && editTitle !== task.title) {
@@ -65,8 +76,12 @@ export function TaskItem({
 
   const paddingLeft = depth * 32 + 12;
 
+  // Show drop indicator above this item when being dragged over
+  const showIndicatorAbove = dragState.destinationDroppableId === groupId && dragState.destinationIndex === index;
+
   return (
     <>
+      {showIndicatorAbove && <DropIndicator />}
       <Draggable draggableId={task.id} index={index}>
         {(provided, snapshot) => (
           <div
