@@ -76,8 +76,26 @@ export function TaskItem({
 
   const paddingLeft = depth * 32 + 12;
 
-  // Show drop indicator above this item when being dragged over
-  const showIndicatorAbove = dragState.destinationDroppableId === groupId && dragState.destinationIndex === index;
+  // Determine if we should show the drop indicator
+  // When dragging within the same group:
+  // - If dragging DOWN (source < destination): show indicator AFTER the item at (destination - 1)
+  // - If dragging UP (source > destination): show indicator BEFORE the item at destination
+  // When dragging from a different group: show indicator BEFORE the item at destination
+  const isSameGroup = dragState.sourceDroppableId === groupId && dragState.destinationDroppableId === groupId;
+  const isDraggingDown = isSameGroup && dragState.sourceIndex !== null && dragState.sourceIndex < (dragState.destinationIndex ?? 0);
+  
+  let showIndicatorAbove = false;
+  let showIndicatorBelow = false;
+
+  if (dragState.destinationDroppableId === groupId && dragState.destinationIndex !== null) {
+    if (isSameGroup && isDraggingDown) {
+      // Show indicator BELOW the item at destination index (the item after which we'll insert)
+      showIndicatorBelow = dragState.destinationIndex === index;
+    } else {
+      // Show indicator ABOVE the item at destination index
+      showIndicatorAbove = dragState.destinationIndex === index;
+    }
+  }
 
   return (
     <>
@@ -204,6 +222,7 @@ export function TaskItem({
           </div>
         )}
       </Draggable>
+      {showIndicatorBelow && <DropIndicator />}
 
       {task.isExpanded && hasSubtasks && (
         <Droppable droppableId={`subtasks-${task.id}`} type="TASK">
