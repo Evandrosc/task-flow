@@ -20,6 +20,7 @@ interface TaskItemProps {
   index: number;
   depth?: number;
   parentTaskId?: string;
+  listDroppableId: string;
   onToggleExpand: (groupId: string, taskId: string) => void;
   onAddSubtask: (groupId: string, parentTaskId: string, title: string) => void;
   onUpdateTask: (groupId: string, taskId: string, updates: Partial<Task>) => void;
@@ -28,9 +29,9 @@ interface TaskItemProps {
   getSubtaskCount: (task: Task) => number;
 }
 
-function DropIndicator() {
+function DropIndicator({ indentPx = 12 }: { indentPx?: number }) {
   return (
-    <div className="drop-indicator">
+    <div className="drop-indicator" style={{ marginLeft: indentPx, marginRight: 12 }}>
       <div className="drop-indicator-arrow" />
       <div className="drop-indicator-line" />
     </div>
@@ -43,6 +44,7 @@ export function TaskItem({
   index,
   depth = 0,
   parentTaskId,
+  listDroppableId,
   onToggleExpand,
   onAddSubtask,
   onUpdateTask,
@@ -83,14 +85,14 @@ export function TaskItem({
   // - If dragging DOWN (source < destination): show indicator AFTER the item at (destination - 1)
   // - If dragging UP (source > destination): show indicator BEFORE the item at destination
   // When dragging from a different group: show indicator BEFORE the item at destination
-  const isSameGroup = dragState.sourceDroppableId === groupId && dragState.destinationDroppableId === groupId;
-  const isDraggingDown = isSameGroup && dragState.sourceIndex !== null && dragState.sourceIndex < (dragState.destinationIndex ?? 0);
+  const isSameList = dragState.sourceDroppableId === listDroppableId && dragState.destinationDroppableId === listDroppableId;
+  const isDraggingDown = isSameList && dragState.sourceIndex !== null && dragState.sourceIndex < (dragState.destinationIndex ?? 0);
   
   let showIndicatorAbove = false;
   let showIndicatorBelow = false;
 
-  if (dragState.destinationDroppableId === groupId && dragState.destinationIndex !== null) {
-    if (isSameGroup && isDraggingDown) {
+  if (dragState.destinationDroppableId === listDroppableId && dragState.destinationIndex !== null) {
+    if (isSameList && isDraggingDown) {
       // Show indicator BELOW the item at destination index (the item after which we'll insert)
       showIndicatorBelow = dragState.destinationIndex === index;
     } else {
@@ -99,9 +101,13 @@ export function TaskItem({
     }
   }
 
+  // ClickUp-style visual: if dragging right on the group root, show the line indented to hint "will become subtask"
+  const wantsIndent = dragState.dragOffsetX > 28;
+  const indicatorIndent = wantsIndent && listDroppableId === groupId ? paddingLeft + 32 : paddingLeft;
+
   return (
     <>
-      {showIndicatorAbove && <DropIndicator />}
+      {showIndicatorAbove && <DropIndicator indentPx={indicatorIndent} />}
       <Draggable draggableId={task.id} index={index}>
         {(provided, snapshot) => (
           <div
@@ -224,7 +230,7 @@ export function TaskItem({
           </div>
         )}
       </Draggable>
-      {showIndicatorBelow && <DropIndicator />}
+      {showIndicatorBelow && <DropIndicator indentPx={indicatorIndent} />}
 
       {task.isExpanded && hasSubtasks && (
         <Droppable droppableId={`subtasks-${task.id}`} type="TASK">
@@ -238,6 +244,7 @@ export function TaskItem({
                   index={subtaskIndex}
                   depth={depth + 1}
                   parentTaskId={task.id}
+                  listDroppableId={`subtasks-${task.id}`}
                   onToggleExpand={onToggleExpand}
                   onAddSubtask={onAddSubtask}
                   onUpdateTask={onUpdateTask}
