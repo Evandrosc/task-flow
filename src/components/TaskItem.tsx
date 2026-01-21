@@ -19,6 +19,7 @@ interface TaskItemProps {
   groupId: string;
   index: number;
   depth?: number;
+  parentTaskId?: string;
   onToggleExpand: (groupId: string, taskId: string) => void;
   onAddSubtask: (groupId: string, parentTaskId: string, title: string) => void;
   onUpdateTask: (groupId: string, taskId: string, updates: Partial<Task>) => void;
@@ -41,6 +42,7 @@ export function TaskItem({
   groupId,
   index,
   depth = 0,
+  parentTaskId,
   onToggleExpand,
   onAddSubtask,
   onUpdateTask,
@@ -235,6 +237,7 @@ export function TaskItem({
                   groupId={groupId}
                   index={subtaskIndex}
                   depth={depth + 1}
+                  parentTaskId={task.id}
                   onToggleExpand={onToggleExpand}
                   onAddSubtask={onAddSubtask}
                   onUpdateTask={onUpdateTask}
