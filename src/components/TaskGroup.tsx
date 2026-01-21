@@ -39,6 +39,10 @@ export function TaskGroup({
   getSubtaskCount,
 }: TaskGroupProps) {
   const dragState = useDragState();
+
+  // Prevent subtasks from being dropped into the group root by mistake due to nested droppables.
+  // This avoids the "subtask vira task" bug when trying to reorder subtasks.
+  const isDraggingSubtask = (dragState.sourceDroppableId ?? '').startsWith('subtasks-');
   
   // Show indicator at end only when dragging from a different group or dragging up within same group
   const isSameGroup = dragState.sourceDroppableId === group.id && dragState.destinationDroppableId === group.id;
@@ -78,7 +82,7 @@ export function TaskGroup({
 
       {group.isExpanded && (
         <div className="bg-card/50">
-          <Droppable droppableId={group.id} type="TASK">
+          <Droppable droppableId={group.id} type="TASK" isDropDisabled={isDraggingSubtask}>
             {(provided) => (
               <div
                 ref={provided.innerRef}
