@@ -95,6 +95,7 @@ export function TaskGroup({
                     task={task}
                     groupId={group.id}
                     index={index}
+                    listDroppableId={group.id}
                     onToggleExpand={onToggleTaskExpand}
                     onAddSubtask={onAddSubtask}
                     onUpdateTask={onUpdateTask}
