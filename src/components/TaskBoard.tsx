@@ -60,9 +60,40 @@ export function TaskBoard() {
     const sourceDroppableId = source.droppableId;
     const destDroppableId = destination.droppableId;
     
+    // If source and destination are the same and index is the same, no change needed
+    if (sourceDroppableId === destDroppableId && source.index === destination.index) {
+      return;
+    }
+    
+    // Check if source/destination are subtask containers
+    const isSourceSubtask = sourceDroppableId.startsWith('subtasks-');
+    const isDestSubtask = destDroppableId.startsWith('subtasks-');
+    
     // Check if destination is a group (not a subtask container)
     const isDestGroup = groups.some(g => g.id === destDroppableId);
     const isSourceGroup = groups.some(g => g.id === sourceDroppableId);
+    
+    // Reordering subtasks within the same parent
+    if (isSourceSubtask && isDestSubtask && sourceDroppableId === destDroppableId) {
+      const parentTaskId = sourceDroppableId.replace('subtasks-', '');
+      // Find which group this parent belongs to
+      for (const group of groups) {
+        const findParentGroup = (tasks: typeof group.tasks): string | null => {
+          for (const task of tasks) {
+            if (task.id === parentTaskId) return group.id;
+            const found = findParentGroup(task.subtasks);
+            if (found) return found;
+          }
+          return null;
+        };
+        const groupId = findParentGroup(group.tasks);
+        if (groupId) {
+          reorderSubtasks(groupId, parentTaskId, source.index, destination.index);
+          return;
+        }
+      }
+      return;
+    }
     
     // Moving within the same group at root level
     if (isSourceGroup && isDestGroup && sourceDroppableId === destDroppableId) {
@@ -86,32 +117,11 @@ export function TaskBoard() {
       return;
     }
 
-    // Moving to subtasks of a task (demoting task to subtask or reordering subtasks)
-    if (destDroppableId.startsWith('subtasks-')) {
+    // Moving to subtasks of a different task (demoting task to subtask or moving between subtask lists)
+    if (isDestSubtask) {
       const parentTaskId = destDroppableId.replace('subtasks-', '');
-
-      // If same source and destination, it's a reorder within subtasks
-      if (sourceDroppableId === destDroppableId) {
-        // Find which group this parent belongs to
-        for (const group of groups) {
-          const findParentGroup = (tasks: typeof group.tasks): string | null => {
-            for (const task of tasks) {
-              if (task.id === parentTaskId) return group.id;
-              const found = findParentGroup(task.subtasks);
-              if (found) return found;
-            }
-            return null;
-          };
-          const groupId = findParentGroup(group.tasks);
-          if (groupId) {
-            reorderSubtasks(groupId, parentTaskId, source.index, destination.index);
-            return;
-          }
-        }
-      } else {
-        // Moving a task to become a subtask of another task
-        moveTaskToSubtask(draggableId, parentTaskId, destination.index);
-      }
+      moveTaskToSubtask(draggableId, parentTaskId, destination.index);
+      return;
     }
   };
 
