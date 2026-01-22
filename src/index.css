@@ -187,24 +187,21 @@
 }
 
 /* Hide the default placeholder since we use custom indicator */
-[data-rfd-placeholder-context-id],
 [data-rbd-placeholder-context-id] {
   display: none !important;
-  height: 0 !important;
-  min-height: 0 !important;
-  padding: 0 !important;
-  margin: 0 !important;
-  overflow: hidden !important;
 }
 
-/* Prevent layout shifts during drag */
-[data-rfd-droppable-context-id],
-[data-rbd-droppable-context-id] {
-  min-height: 0 !important;
+/* Remove focus outline from draggable items to prevent visual bugs */
+[data-rbd-draggable-context-id]:focus,
+[data-rfd-draggable-context-id]:focus {
+  outline: none !important;
 }
 
-/* Disable transform transitions on draggable items to prevent trembling */
-[data-rfd-draggable-context-id],
-[data-rbd-draggable-context-id] {
-  transition: none !important;
+/* Prevent ring/outline during drag on non-dragging items */
+.task-item:focus {
+  outline: none;
+}
+
+.task-item:focus-visible {
+  outline: none;
 }
