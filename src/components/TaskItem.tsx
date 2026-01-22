@@ -259,13 +259,6 @@ export function TaskItem({
         </Droppable>
       )}
 
-      {task.isExpanded && (
-        <AddTaskInput
-          onAdd={(title) => onAddSubtask(groupId, task.id, title)}
-          placeholder="Adicionar Subtarefa"
-          indent={depth + 1}
-        />
-      )}
     </>
   );
 }
