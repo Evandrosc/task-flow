@@ -1,9 +1,8 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Draggable, Droppable } from '@hello-pangea/dnd';
 import { ChevronRight, ChevronDown, GripVertical, MoreHorizontal, Pencil, Trash2, Link } from 'lucide-react';
 import { Task, TaskStatus } from '@/types/task';
 import { TaskStatusIcon } from './TaskStatusIcon';
-import { AddTaskInput } from './AddTaskInput';
 import { cn } from '@/lib/utils';
 import { useDragState } from './DragContext';
 import {
@@ -27,13 +26,29 @@ interface TaskItemProps {
   onDeleteTask: (groupId: string, taskId: string) => void;
   onReorderSubtasks: (groupId: string, parentTaskId: string, startIndex: number, endIndex: number) => void;
   getSubtaskCount: (task: Task) => number;
+  registerTaskRect: (taskId: string, rect: DOMRect | null, groupId: string, depth: number) => void;
 }
 
-function DropIndicator({ indentPx = 12 }: { indentPx?: number }) {
+const INDENT_WIDTH = 32;
+
+function DropIndicator({ position, depth }: { position: 'before' | 'after' | 'inside'; depth: number }) {
+  const marginLeft = depth * INDENT_WIDTH + 12;
+  const isInside = position === 'inside';
+  
   return (
-    <div className="drop-indicator" style={{ marginLeft: indentPx, marginRight: 12 }}>
-      <div className="drop-indicator-arrow" />
-      <div className="drop-indicator-line" />
+    <div 
+      className="relative h-0 pointer-events-none z-50"
+      style={{ marginLeft }}
+    >
+      <div className={cn(
+        "h-0.5 relative",
+        isInside ? "bg-green-500" : "bg-primary"
+      )}>
+        <div className={cn(
+          "absolute -left-1 -top-1 w-2 h-2 rounded-full",
+          isInside ? "bg-green-500" : "bg-primary"
+        )} />
+      </div>
     </div>
   );
 }
@@ -43,7 +58,6 @@ export function TaskItem({
   groupId,
   index,
   depth = 0,
-  parentTaskId,
   listDroppableId,
   onToggleExpand,
   onAddSubtask,
@@ -51,12 +65,33 @@ export function TaskItem({
   onDeleteTask,
   onReorderSubtasks,
   getSubtaskCount,
+  registerTaskRect,
 }: TaskItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(task.title);
   const hasSubtasks = task.subtasks.length > 0;
   const subtaskCount = getSubtaskCount(task);
   const dragState = useDragState();
+  const itemRef = useRef<HTMLDivElement>(null);
+
+  // Register element rect for drag detection
+  useEffect(() => {
+    const updateRect = () => {
+      if (itemRef.current) {
+        registerTaskRect(task.id, itemRef.current.getBoundingClientRect(), groupId, depth);
+      }
+    };
+    
+    updateRect();
+    window.addEventListener('scroll', updateRect, true);
+    window.addEventListener('resize', updateRect);
+    
+    return () => {
+      registerTaskRect(task.id, null, groupId, depth);
+      window.removeEventListener('scroll', updateRect, true);
+      window.removeEventListener('resize', updateRect);
+    };
+  }, [task.id, groupId, depth, registerTaskRect]);
 
   const handleEditSubmit = () => {
     if (editTitle.trim() && editTitle !== task.title) {
@@ -78,45 +113,31 @@ export function TaskItem({
     onUpdateTask(groupId, task.id, { status });
   };
 
-  const paddingLeft = depth * 32 + 12;
+  const paddingLeft = depth * INDENT_WIDTH + 12;
 
-  // Determine if we should show the drop indicator
-  // When dragging within the same group:
-  // - If dragging DOWN (source < destination): show indicator AFTER the item at (destination - 1)
-  // - If dragging UP (source > destination): show indicator BEFORE the item at destination
-  // When dragging from a different group: show indicator BEFORE the item at destination
-  const isSameList = dragState.sourceDroppableId === listDroppableId && dragState.destinationDroppableId === listDroppableId;
-  const isDraggingDown = isSameList && dragState.sourceIndex !== null && dragState.sourceIndex < (dragState.destinationIndex ?? 0);
-  
-  let showIndicatorAbove = false;
-  let showIndicatorBelow = false;
-
-  if (dragState.destinationDroppableId === listDroppableId && dragState.destinationIndex !== null) {
-    if (isSameList && isDraggingDown) {
-      // Show indicator BELOW the item at destination index (the item after which we'll insert)
-      showIndicatorBelow = dragState.destinationIndex === index;
-    } else {
-      // Show indicator ABOVE the item at destination index
-      showIndicatorAbove = dragState.destinationIndex === index;
-    }
-  }
-
-  // ClickUp-style visual: if dragging right on the group root, show the line indented to hint "will become subtask"
-  const wantsIndent = dragState.dragOffsetX > 28;
-  const indicatorIndent = wantsIndent && listDroppableId === groupId ? paddingLeft + 32 : paddingLeft;
+  // Show indicators based on dragState
+  const showBefore = dragState.overTaskId === task.id && dragState.dropPosition === 'before';
+  const showAfter = dragState.overTaskId === task.id && dragState.dropPosition === 'after';
+  const showInside = dragState.overTaskId === task.id && dragState.dropPosition === 'inside';
+  const isDragging = dragState.draggedTaskId === task.id;
 
   return (
     <>
-      {showIndicatorAbove && <DropIndicator indentPx={indicatorIndent} />}
+      {showBefore && <DropIndicator position="before" depth={depth} />}
       <Draggable draggableId={task.id} index={index}>
         {(provided, snapshot) => (
           <div
-            ref={provided.innerRef}
+            ref={(el) => {
+              provided.innerRef(el);
+              (itemRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
+            }}
             {...provided.draggableProps}
             {...provided.dragHandleProps}
             className={cn(
               'task-item flex items-center gap-2 py-2 border-b border-border/50 group cursor-grab active:cursor-grabbing',
-              snapshot.isDragging && 'task-dragging rounded-md z-50'
+              snapshot.isDragging && 'task-dragging rounded-md z-50',
+              isDragging && 'opacity-50',
+              showInside && 'bg-accent/50 ring-1 ring-primary/30'
             )}
             style={{
               ...provided.draggableProps.style,
@@ -230,7 +251,8 @@ export function TaskItem({
           </div>
         )}
       </Draggable>
-      {showIndicatorBelow && <DropIndicator indentPx={indicatorIndent} />}
+      {showAfter && <DropIndicator position="after" depth={depth} />}
+      {showInside && <DropIndicator position="inside" depth={depth + 1} />}
 
       {task.isExpanded && hasSubtasks && (
         <Droppable droppableId={`subtasks-${task.id}`} type="TASK">
@@ -243,7 +265,6 @@ export function TaskItem({
                   groupId={groupId}
                   index={subtaskIndex}
                   depth={depth + 1}
-                  parentTaskId={task.id}
                   listDroppableId={`subtasks-${task.id}`}
                   onToggleExpand={onToggleExpand}
                   onAddSubtask={onAddSubtask}
@@ -251,6 +272,7 @@ export function TaskItem({
                   onDeleteTask={onDeleteTask}
                   onReorderSubtasks={onReorderSubtasks}
                   getSubtaskCount={getSubtaskCount}
+                  registerTaskRect={registerTaskRect}
                 />
               ))}
               {provided.placeholder}
@@ -258,7 +280,6 @@ export function TaskItem({
           )}
         </Droppable>
       )}
-
     </>
   );
 }

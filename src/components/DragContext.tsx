@@ -1,19 +1,19 @@
 import { createContext, useContext } from 'react';
 
+export type DropPosition = 'before' | 'after' | 'inside' | null;
+
 export interface DragState {
-  sourceDroppableId: string | null;
-  sourceIndex: number | null;
-  destinationDroppableId: string | null;
-  destinationIndex: number | null;
-  dragOffsetX: number; // horizontal intent: >0 indent, <0 outdent
+  draggedTaskId: string | null;
+  overTaskId: string | null;
+  dropPosition: DropPosition;
+  overGroupId: string | null;
 }
 
 export const DragContext = createContext<DragState>({ 
-  sourceDroppableId: null,
-  sourceIndex: null,
-  destinationDroppableId: null, 
-  destinationIndex: null,
-  dragOffsetX: 0,
+  draggedTaskId: null,
+  overTaskId: null,
+  dropPosition: null,
+  overGroupId: null,
 });
 
 export const useDragState = () => useContext(DragContext);
