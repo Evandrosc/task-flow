@@ -1,9 +1,11 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
-import { DragDropContext, DropResult, DragUpdate } from '@hello-pangea/dnd';
+import { useState, useCallback, useRef, useEffect } from 'react';
+import { DragDropContext, DropResult, BeforeCapture, DragUpdate } from '@hello-pangea/dnd';
 import { useTasks } from '@/hooks/useTasks';
 import { TaskGroup } from './TaskGroup';
-import { DragContext, DragState } from './DragContext';
+import { DragContext, DragState, DropPosition } from './DragContext';
 import type { Task } from '@/types/task';
+
+const MAX_DEPTH = 2;
 
 export function TaskBoard() {
   const {
@@ -22,143 +24,226 @@ export function TaskBoard() {
   } = useTasks();
 
   const [dragState, setDragState] = useState<DragState>({
-    sourceDroppableId: null,
-    sourceIndex: null,
-    destinationDroppableId: null,
-    destinationIndex: null,
-    dragOffsetX: 0,
+    draggedTaskId: null,
+    overTaskId: null,
+    dropPosition: null,
+    overGroupId: null,
   });
 
-  const dragStartXRef = useRef<number | null>(null);
-  const isDraggingRef = useRef(false);
+  const draggedTaskIdRef = useRef<string | null>(null);
+  const mouseYRef = useRef<number>(0);
+  const taskRectsRef = useRef<Map<string, { top: number; bottom: number; groupId: string; depth: number }>>(new Map());
 
+  // Track mouse position during drag
   useEffect(() => {
-    const onPointerMove = (e: PointerEvent) => {
-      if (!isDraggingRef.current || dragStartXRef.current === null) return;
-      const dx = e.clientX - dragStartXRef.current;
-      setDragState((prev) => ({ ...prev, dragOffsetX: dx }));
-    };
-
-    window.addEventListener('pointermove', onPointerMove);
-    return () => window.removeEventListener('pointermove', onPointerMove);
-  }, []);
-
-  const handleDragUpdate = useCallback((update: DragUpdate) => {
-    if (update.destination) {
-      setDragState({
-        sourceDroppableId: update.source.droppableId,
-        sourceIndex: update.source.index,
-        destinationDroppableId: update.destination.droppableId,
-        destinationIndex: update.destination.index,
-        dragOffsetX: 0,
+    const handlePointerMove = (e: PointerEvent) => {
+      if (!draggedTaskIdRef.current) return;
+      mouseYRef.current = e.clientY;
+      
+      // Find which task we're over and calculate drop position
+      let foundTask: { id: string; position: DropPosition; groupId: string } | null = null;
+      
+      taskRectsRef.current.forEach((rect, taskId) => {
+        if (taskId === draggedTaskIdRef.current) return;
+        
+        if (e.clientY >= rect.top && e.clientY <= rect.bottom) {
+          const elementHeight = rect.bottom - rect.top;
+          const relativeY = e.clientY - rect.top;
+          const percent = relativeY / elementHeight;
+          
+          let position: DropPosition;
+          if (percent < 0.33) {
+            position = 'before';
+          } else if (percent < 0.66) {
+            position = 'inside';
+          } else {
+            position = 'after';
+          }
+          
+          foundTask = { id: taskId, position, groupId: rect.groupId };
+        }
       });
-    } else {
-      setDragState({ 
-        sourceDroppableId: null, 
-        sourceIndex: null, 
-        destinationDroppableId: null, 
-        destinationIndex: null,
-        dragOffsetX: 0,
-      });
-    }
-  }, []);
-
-  const handleDragStart = (start: { source: { droppableId: string; index: number } }) => {
-    isDraggingRef.current = true;
-    dragStartXRef.current = null;
-    // capture pointer x on next tick (after drag starts) from the last pointer event
-    // fallback: if we don't capture, dragOffsetX stays 0 and behavior remains unchanged.
-    const onFirstPointerMove = (e: PointerEvent) => {
-      dragStartXRef.current = e.clientX;
-      window.removeEventListener('pointermove', onFirstPointerMove);
-    };
-    window.addEventListener('pointermove', onFirstPointerMove);
-
-    setDragState((prev) => ({
-      ...prev,
-      sourceDroppableId: start.source.droppableId,
-      sourceIndex: start.source.index,
-      dragOffsetX: 0,
-    }));
-  };
-
-  const resetDrag = () => {
-    isDraggingRef.current = false;
-    dragStartXRef.current = null;
-    setDragState({
-      sourceDroppableId: null,
-      sourceIndex: null,
-      destinationDroppableId: null,
-      destinationIndex: null,
-      dragOffsetX: 0,
-    });
-  };
-
-  const findTaskByIdInGroup = (groupId: string, taskId: string): Task | null => {
-    const group = groups.find((g) => g.id === groupId);
-    if (!group) return null;
-    const walk = (tasks: Task[]): Task | null => {
-      for (const t of tasks) {
-        if (t.id === taskId) return t;
-        const found = walk(t.subtasks);
-        if (found) return found;
+      
+      if (foundTask) {
+        // Check constraints before setting
+        const draggedId = draggedTaskIdRef.current;
+        if (draggedId && !isDescendantOf(foundTask.id, draggedId)) {
+          // Check depth constraint for "inside"
+          if (foundTask.position === 'inside') {
+            const targetRect = taskRectsRef.current.get(foundTask.id);
+            const targetDepth = targetRect?.depth ?? 0;
+            const draggedTask = findTaskById(draggedId);
+            const draggedMaxDepth = draggedTask ? getMaxDescendantDepthOf(draggedTask) : 0;
+            
+            if (targetDepth + 1 + draggedMaxDepth <= MAX_DEPTH) {
+              setDragState({
+                draggedTaskId: draggedId,
+                overTaskId: foundTask.id,
+                dropPosition: foundTask.position,
+                overGroupId: foundTask.groupId,
+              });
+            }
+          } else {
+            setDragState({
+              draggedTaskId: draggedId,
+              overTaskId: foundTask.id,
+              dropPosition: foundTask.position,
+              overGroupId: foundTask.groupId,
+            });
+          }
+        }
       }
-      return null;
     };
-    return walk(group.tasks);
-  };
+    
+    window.addEventListener('pointermove', handlePointerMove);
+    return () => window.removeEventListener('pointermove', handlePointerMove);
+  }, []);
 
-  const findTaskPath = (taskId: string): { groupId: string; path: number[]; parentId: string | null } | null => {
+  // Helper functions that don't need useCallback since they read from groups
+  const findTaskById = (taskId: string): Task | null => {
     for (const group of groups) {
-      const walk = (tasks: Task[], path: number[], parentId: string | null): { groupId: string; path: number[]; parentId: string | null } | null => {
-        for (let i = 0; i < tasks.length; i++) {
-          const t = tasks[i];
-          const nextPath = [...path, i];
-          if (t.id === taskId) return { groupId: group.id, path: nextPath, parentId };
-          const found = walk(t.subtasks, nextPath, t.id);
+      const find = (tasks: Task[]): Task | null => {
+        for (const t of tasks) {
+          if (t.id === taskId) return t;
+          const found = find(t.subtasks);
           if (found) return found;
         }
         return null;
       };
-      const res = walk(group.tasks, [], null);
-      if (res) return res;
+      const found = find(group.tasks);
+      if (found) return found;
     }
     return null;
   };
 
-  const handleDragEnd = (result: DropResult) => {
-    const finalDragOffsetX = dragState.dragOffsetX;
-    resetDrag();
-    
+  const getMaxDescendantDepthOf = (task: Task): number => {
+    if (task.subtasks.length === 0) return 0;
+    return 1 + Math.max(...task.subtasks.map(getMaxDescendantDepthOf));
+  };
+
+  const isDescendantOf = (taskId: string, ancestorId: string): boolean => {
+    for (const group of groups) {
+      const find = (tasks: Task[]): boolean => {
+        for (const t of tasks) {
+          if (t.id === ancestorId) {
+            const checkDescendants = (subtasks: Task[]): boolean => {
+              for (const st of subtasks) {
+                if (st.id === taskId) return true;
+                if (checkDescendants(st.subtasks)) return true;
+              }
+              return false;
+            };
+            return checkDescendants(t.subtasks);
+          }
+          if (find(t.subtasks)) return true;
+        }
+        return false;
+      };
+      if (find(group.tasks)) return true;
+    }
+    return false;
+  };
+
+  const findTaskLocation = useCallback((taskId: string): { groupId: string; parentId: string | null; index: number } | null => {
+    for (const group of groups) {
+      for (let i = 0; i < group.tasks.length; i++) {
+        if (group.tasks[i].id === taskId) {
+          return { groupId: group.id, parentId: null, index: i };
+        }
+      }
+      const findInSubtasks = (tasks: Task[], parentId: string): { groupId: string; parentId: string; index: number } | null => {
+        for (let i = 0; i < tasks.length; i++) {
+          if (tasks[i].id === taskId) {
+            return { groupId: group.id, parentId, index: i };
+          }
+          const found = findInSubtasks(tasks[i].subtasks, tasks[i].id);
+          if (found) return found;
+        }
+        return null;
+      };
+      for (const task of group.tasks) {
+        const found = findInSubtasks(task.subtasks, task.id);
+        if (found) return found;
+      }
+    }
+    return null;
+  }, [groups]);
+
+  const registerTaskRect = useCallback((taskId: string, rect: DOMRect | null, groupId: string, depth: number) => {
+    if (rect) {
+      taskRectsRef.current.set(taskId, { top: rect.top, bottom: rect.bottom, groupId, depth });
+    } else {
+      taskRectsRef.current.delete(taskId);
+    }
+  }, []);
+
+  const handleBeforeCapture = useCallback((before: BeforeCapture) => {
+    draggedTaskIdRef.current = before.draggableId;
+    setDragState({
+      draggedTaskId: before.draggableId,
+      overTaskId: null,
+      dropPosition: null,
+      overGroupId: null,
+    });
+  }, []);
+
+  const resetDrag = useCallback(() => {
+    draggedTaskIdRef.current = null;
+    taskRectsRef.current.clear();
+    setDragState({
+      draggedTaskId: null,
+      overTaskId: null,
+      dropPosition: null,
+      overGroupId: null,
+    });
+  }, []);
+
+  const handleDragEnd = useCallback((result: DropResult) => {
     const { source, destination, draggableId } = result;
+    const { overTaskId, dropPosition, overGroupId } = dragState;
     
+    resetDrag();
+
+    // If we have a custom drop position (from mouse position detection), use that
+    if (overTaskId && dropPosition && overGroupId) {
+      const targetLocation = findTaskLocation(overTaskId);
+      if (!targetLocation) return;
+
+      if (dropPosition === 'inside') {
+        moveTaskToSubtask(draggableId, overTaskId, 0);
+      } else if (dropPosition === 'before') {
+        if (targetLocation.parentId) {
+          moveTaskToSubtask(draggableId, targetLocation.parentId, targetLocation.index);
+        } else {
+          moveTaskToGroup(draggableId, targetLocation.groupId, targetLocation.index);
+        }
+      } else if (dropPosition === 'after') {
+        if (targetLocation.parentId) {
+          moveTaskToSubtask(draggableId, targetLocation.parentId, targetLocation.index + 1);
+        } else {
+          moveTaskToGroup(draggableId, targetLocation.groupId, targetLocation.index + 1);
+        }
+      }
+      return;
+    }
+
+    // Fallback to default dnd behavior
     if (!destination) return;
-    
+
     const sourceDroppableId = source.droppableId;
     const destDroppableId = destination.droppableId;
 
-    const INDENT_THRESHOLD = 28;
-    const OUTDENT_THRESHOLD = 28;
-    const wantsIndent = finalDragOffsetX > INDENT_THRESHOLD;
-    const wantsOutdent = finalDragOffsetX < -OUTDENT_THRESHOLD;
-    
-    // If source and destination are the same and index is the same, no change needed
     if (sourceDroppableId === destDroppableId && source.index === destination.index) {
       return;
     }
-    
-    // Check if source/destination are subtask containers
+
     const isSourceSubtask = sourceDroppableId.startsWith('subtasks-');
     const isDestSubtask = destDroppableId.startsWith('subtasks-');
-    
-    // Check if destination is a group (not a subtask container)
     const isDestGroup = groups.some(g => g.id === destDroppableId);
     const isSourceGroup = groups.some(g => g.id === sourceDroppableId);
-    
-    // Reordering subtasks within the same parent
+
     if (isSourceSubtask && isDestSubtask && sourceDroppableId === destDroppableId) {
       const parentTaskId = sourceDroppableId.replace('subtasks-', '');
-      // Find which group this parent belongs to
       for (const group of groups) {
         const findParentGroup = (tasks: typeof group.tasks): string | null => {
           for (const task of tasks) {
@@ -176,62 +261,32 @@ export function TaskBoard() {
       }
       return;
     }
-    
-    // Moving within the same group at root level
-    if (isSourceGroup && isDestGroup && sourceDroppableId === destDroppableId) {
-      // ClickUp-style indent: if user drags right enough, turn into subtask of previous item
-      if (wantsIndent && destination.index > 0) {
-        const targetGroup = groups.find((g) => g.id === destDroppableId);
-        const candidateParent = targetGroup?.tasks[destination.index - 1];
-        if (candidateParent) {
-          const parent = findTaskByIdInGroup(destDroppableId, candidateParent.id);
-          const targetIndex = parent ? parent.subtasks.length : 0;
-          moveTaskToSubtask(draggableId, candidateParent.id, targetIndex);
-          return;
-        }
-      }
 
+    if (isSourceGroup && isDestGroup && sourceDroppableId === destDroppableId) {
       if (source.index !== destination.index) {
         reorderTasks(sourceDroppableId, source.index, destination.index);
       }
       return;
     }
 
-    // ClickUp-style outdent: dragging a subtask left enough promotes it to a root task
-    if (isSourceSubtask && wantsOutdent) {
-      const loc = findTaskPath(draggableId);
-      if (loc) {
-        const rootIndex = loc.path[0] ?? 0;
-        moveTaskToGroup(draggableId, loc.groupId, rootIndex + 1);
-        return;
-      }
-    }
-    
-    // Moving from subtasks to a group (promoting subtask to task)
-    // Or moving between groups
     if (isDestGroup) {
       moveTaskToGroup(draggableId, destDroppableId, destination.index);
       return;
     }
 
-    // Dropping on a task row: make it a subtask of that task
-    if (destDroppableId.startsWith('drop-')) {
-      const parentTaskId = destDroppableId.replace('drop-', '');
-      moveTaskToSubtask(draggableId, parentTaskId, 0);
-      return;
-    }
-
-    // Moving to subtasks of a different task (demoting task to subtask or moving between subtask lists)
     if (isDestSubtask) {
       const parentTaskId = destDroppableId.replace('subtasks-', '');
       moveTaskToSubtask(draggableId, parentTaskId, destination.index);
       return;
     }
-  };
+  }, [dragState, groups, findTaskLocation, moveTaskToGroup, moveTaskToSubtask, reorderTasks, reorderSubtasks, resetDrag]);
 
   return (
     <DragContext.Provider value={dragState}>
-      <DragDropContext onDragEnd={handleDragEnd} onDragUpdate={handleDragUpdate} onDragStart={handleDragStart}>
+      <DragDropContext 
+        onDragEnd={handleDragEnd} 
+        onBeforeCapture={handleBeforeCapture}
+      >
         <div className="flex-1 overflow-auto">
           <div className="max-w-5xl mx-auto py-4">
             {groups.map((group) => (
@@ -246,6 +301,7 @@ export function TaskBoard() {
                 onDeleteTask={deleteTask}
                 onReorderSubtasks={reorderSubtasks}
                 getSubtaskCount={getSubtaskCount}
+                registerTaskRect={registerTaskRect}
               />
             ))}
           </div>

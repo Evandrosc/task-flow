@@ -4,7 +4,6 @@ import { TaskGroup as TaskGroupType, Task } from '@/types/task';
 import { TaskItem } from './TaskItem';
 import { AddTaskInput } from './AddTaskInput';
 import { StatusBadge } from './StatusBadge';
-import { useDragState } from './DragContext';
 
 interface TaskGroupProps {
   group: TaskGroupType;
@@ -16,15 +15,7 @@ interface TaskGroupProps {
   onDeleteTask: (groupId: string, taskId: string) => void;
   onReorderSubtasks: (groupId: string, parentTaskId: string, startIndex: number, endIndex: number) => void;
   getSubtaskCount: (task: Task) => number;
-}
-
-function DropIndicator() {
-  return (
-    <div className="drop-indicator">
-      <div className="drop-indicator-arrow" />
-      <div className="drop-indicator-line" />
-    </div>
-  );
+  registerTaskRect: (taskId: string, rect: DOMRect | null, groupId: string, depth: number) => void;
 }
 
 export function TaskGroup({
@@ -37,22 +28,8 @@ export function TaskGroup({
   onDeleteTask,
   onReorderSubtasks,
   getSubtaskCount,
+  registerTaskRect,
 }: TaskGroupProps) {
-  const dragState = useDragState();
-
-  // Prevent subtasks from being dropped into the group root by mistake due to nested droppables.
-  // This avoids the "subtask vira task" bug when trying to reorder subtasks.
-  const isDraggingSubtask = (dragState.sourceDroppableId ?? '').startsWith('subtasks-');
-  
-  // Show indicator at end only when dragging from a different group or dragging up within same group
-  const isSameGroup = dragState.sourceDroppableId === group.id && dragState.destinationDroppableId === group.id;
-  const isDraggingDown = isSameGroup && dragState.sourceIndex !== null && dragState.sourceIndex < (dragState.destinationIndex ?? 0);
-  
-  // Only show at end if not dragging down within same group (when dragging down, indicator is shown below items)
-  const showIndicatorAtEnd = dragState.destinationDroppableId === group.id && 
-    dragState.destinationIndex === group.tasks.length &&
-    !isDraggingDown;
-
   return (
     <div>
       <div className="flex items-center gap-2 py-3 px-3 border-b border-border">
@@ -82,7 +59,7 @@ export function TaskGroup({
 
       {group.isExpanded && (
         <div className="bg-card/50">
-          <Droppable droppableId={group.id} type="TASK" isDropDisabled={isDraggingSubtask}>
+          <Droppable droppableId={group.id} type="TASK">
             {(provided) => (
               <div
                 ref={provided.innerRef}
@@ -95,6 +72,7 @@ export function TaskGroup({
                     task={task}
                     groupId={group.id}
                     index={index}
+                    depth={0}
                     listDroppableId={group.id}
                     onToggleExpand={onToggleTaskExpand}
                     onAddSubtask={onAddSubtask}
@@ -102,9 +80,9 @@ export function TaskGroup({
                     onDeleteTask={onDeleteTask}
                     onReorderSubtasks={onReorderSubtasks}
                     getSubtaskCount={getSubtaskCount}
+                    registerTaskRect={registerTaskRect}
                   />
                 ))}
-                {showIndicatorAtEnd && <DropIndicator />}
                 {provided.placeholder}
               </div>
             )}
